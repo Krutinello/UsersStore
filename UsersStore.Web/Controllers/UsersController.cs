@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
+using UsersStore.Dal;
 using UsersStore.Dal.Abstract;
 using UsersStore.Dal.Entities;
 
@@ -55,20 +56,14 @@ namespace UsersStore.Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                byte[] salt = new byte[128 / 8];
-                using (var rng = RandomNumberGenerator.Create())
-                {
-                    rng.GetBytes(salt);
-                }
-
                 string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
                     password: user.PasswordHash,
-                    salt: salt,
+                    salt: Salt.SALT,
                     prf: KeyDerivationPrf.HMACSHA1,
                     iterationCount: 10000,
                     numBytesRequested: 256 / 8));
                 user.PasswordHash = hashedPassword;
-                user.Salt = salt;
+
 
                 if (user.Role!="admin" && String.IsNullOrWhiteSpace(user.Role))
                     user.Role = "user";
@@ -94,23 +89,15 @@ namespace UsersStore.Web.Controllers
                 User u = _usersRepository.GetById(user.Id);
                 if (u != null)
                 {
-                    byte[] salt = new byte[128 / 8];
-                    using (var rng = RandomNumberGenerator.Create())
-                    {
-                        rng.GetBytes(salt);
-                    }
-
                     string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
                         password: user.PasswordHash,
-                        salt: salt,
+                        salt: Salt.SALT,
                         prf: KeyDerivationPrf.HMACSHA1,
                         iterationCount: 10000,
                         numBytesRequested: 256 / 8));
 
-
                     u.Login = user.Login;
                     u.PasswordHash = hashedPassword;
-                    u.Salt = salt;
                     u.Role = user.Role;
                     u.FirstName = user.FirstName;
                     u.LastName = user.LastName;
@@ -143,5 +130,9 @@ namespace UsersStore.Web.Controllers
 
             return NotFound();
         }
+
+
+
+
     }
 }

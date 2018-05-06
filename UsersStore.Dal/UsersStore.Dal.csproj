@@ -118,8 +118,13 @@
     <Compile Include="Migrations\20180505183346_UpdateUserModel.designer.cs">
       <DependentUpon>20180505183346_UpdateUserModel.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\20180506080216_ChandingUserModel.cs" />
+    <Compile Include="Migrations\20180506080216_ChandingUserModel.designer.cs">
+      <DependentUpon>20180506080216_ChandingUserModel.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\UsersStoreContextModelSnapshot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Salt.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

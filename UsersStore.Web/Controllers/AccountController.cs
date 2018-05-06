@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using UsersStore.Dal;
 using UsersStore.Dal.Abstract;
 using UsersStore.Dal.Entities;
 using UsersStore.Web.TokenApp;
@@ -40,15 +41,9 @@ namespace UsersStore.Web.Controllers
             if (String.IsNullOrWhiteSpace(login) || String.IsNullOrWhiteSpace(password))
                 return BadRequest();
 
-            byte[] salt = new byte[128 / 8];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(salt);
-            }
-
             string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
                 password: password,
-                salt: salt,
+                salt: Salt.SALT,
                 prf: KeyDerivationPrf.HMACSHA1,
                 iterationCount: 10000,
                 numBytesRequested: 256 / 8));
@@ -60,7 +55,6 @@ namespace UsersStore.Web.Controllers
             User newUser = new User
             {
                 Login = login,
-                Salt=salt,
                 PasswordHash = hashedPassword,
                 FirstName = firstname,
                 LastName = lastname,
@@ -90,14 +84,9 @@ namespace UsersStore.Web.Controllers
             var login = Request.Form["login"];
             var password = Request.Form["password"];
 
-            byte[] salt = _usersRepository.Find(u => u.Login == login).FirstOrDefault().Salt;
-            if (salt == null)
-                return BadRequest();
-
-            // derive a 256-bit subkey (use HMACSHA1 with 10,000 iterations)
             string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
                 password: password,
-                salt: salt,
+                salt: Salt.SALT,
                 prf: KeyDerivationPrf.HMACSHA1,
                 iterationCount: 10000,
                 numBytesRequested: 256 / 8));
