@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -25,29 +27,43 @@ namespace UsersStore.Web.Controllers
         }
 
         /// <summary>
-        /// Register user
+        /// Registration user
         /// </summary>
         /// <param name="login"></param>
         /// <param name="password"></param>
-        /// <param name="firstName"></param>
-        /// <param name="lastName"></param>
+        /// <param name="firstname"></param>
+        /// <param name="lastname"></param>
         /// <returns></returns>
-        [HttpPut("{login}/{password}/{firstname?}/{lastname?}")]
-        public IActionResult Register(string login, string password, string firstName, string lastName)
+        [HttpPut("{login}/{password}/{firstname}/{lastname}")]
+        public IActionResult Register(string login, string password, string firstname, string lastname)
         {
             if (String.IsNullOrWhiteSpace(login) || String.IsNullOrWhiteSpace(password))
                 return BadRequest();
 
-            User user = _usersRepository.Find(u => u.Login == login && u.Password == password).FirstOrDefault();
+            byte[] salt = new byte[128 / 8];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(salt);
+            }
+
+            string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: password,
+                salt: salt,
+                prf: KeyDerivationPrf.HMACSHA1,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8));
+
+            User user = _usersRepository.Find(u => u.Login == login && u.PasswordHash == hashedPassword).FirstOrDefault();
             if (user != null)
                 return BadRequest();
 
             User newUser = new User
             {
                 Login = login,
-                Password = password,
-                FirstName = firstName,
-                LastName = lastName,
+                Salt=salt,
+                PasswordHash = hashedPassword,
+                FirstName = firstname,
+                LastName = lastname,
                 Role = "user",
                 CreatedDay = DateTime.Now,
                 IsActive = true,
@@ -74,7 +90,19 @@ namespace UsersStore.Web.Controllers
             var login = Request.Form["login"];
             var password = Request.Form["password"];
 
-            User user = _usersRepository.Find(u => u.Login == login && u.Password == password).FirstOrDefault();
+            byte[] salt = _usersRepository.Find(u => u.Login == login).FirstOrDefault().Salt;
+            if (salt == null)
+                return BadRequest();
+
+            // derive a 256-bit subkey (use HMACSHA1 with 10,000 iterations)
+            string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: password,
+                salt: salt,
+                prf: KeyDerivationPrf.HMACSHA1,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8));
+
+            User user = _usersRepository.Find(u => u.Login == login && u.PasswordHash == hashedPassword).FirstOrDefault();
 
             if (user == null)
                 return BadRequest();
@@ -108,7 +136,6 @@ namespace UsersStore.Web.Controllers
                 audience: AuthJwtTokenOptions.Audience,
                 notBefore: DateTime.UtcNow,
                 claims: identity.Claims,
-                // our token will live 1 hour, but you can change you token lifetime here
                 expires: DateTime.UtcNow.Add(TimeSpan.FromHours(1)),
                 signingCredentials: new SigningCredentials(AuthJwtTokenOptions.GetSecurityKey(), SecurityAlgorithms.HmacSha256));
             return new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);

@@ -114,6 +114,10 @@
     <Compile Include="Migrations\20180505091559_ChangingUserModel.designer.cs">
       <DependentUpon>20180505091559_ChangingUserModel.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\20180505183346_UpdateUserModel.cs" />
+    <Compile Include="Migrations\20180505183346_UpdateUserModel.designer.cs">
+      <DependentUpon>20180505183346_UpdateUserModel.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\UsersStoreContextModelSnapshot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

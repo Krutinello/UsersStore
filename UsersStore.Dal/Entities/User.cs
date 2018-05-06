@@ -10,7 +10,8 @@ namespace UsersStore.Dal.Entities
     {
         public int Id { get; set; }
         public string Login { get; set; }
-        public string Password { get; set; }
+        public string PasswordHash { get; set; }
+        public byte[] Salt { get; set; }
         public DateTime CreatedDay { get; set; }
         public string Role { get; set; }
         public bool IsActive { get; set; }

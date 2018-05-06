@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,14 +26,13 @@ namespace UsersStore.Web
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // получаем строку подключения из файла конфигурации
             string connection = Configuration.GetConnectionString("DefaultConnection");
-            // добавляем контекст MobileContext в качестве сервиса в приложение
             services.AddDbContext<UsersStoreContext>(options =>
                 options.UseSqlServer(connection));
+
+            //services.AddRouting();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -60,7 +62,6 @@ namespace UsersStore.Web
             services.AddScoped<IUsersRepository, UsersRepository>();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             if (env.IsDevelopment())
@@ -74,10 +75,37 @@ namespace UsersStore.Web
             app.UseMvc();
 
             app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Core API");
-            });
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Core API"));
+
+            //// определяем обработчик маршрута
+            //var myRouteHandler = new RouteHandler(Handle);
+            //// создаем маршрут, используя обработчик
+            //var routeBuilder = new RouteBuilder(app, myRouteHandler);
+            //// само определение маршрута - он должен соответствовать запросу {controller}/{action}
+            //routeBuilder.MapRoute("default", "/");
+            //// строим маршрут
+            //app.UseRouter(routeBuilder.Build());
+
+
+
+
+            //app.UseMvc(routes =>
+            //{
+            //    routes.MapRoute(
+            //        name: "default_route",
+            //        template: "{controller}/{action}/{id?}",
+            //        defaults: new { controller = "Values", action = "Get" }
+            //    );
+            //});
+            //app.Run(async (context) =>
+            //{
+            //    await context.Response.WriteAsync("Hello World!");
+            //});
         }
+        // собственно обработчик маршрута
+        //private async Task Handle(HttpContext context)
+        //{
+        //    await context.Response.WriteAsync("Hello ASP.NET Core!");
+        //}
     }
 }

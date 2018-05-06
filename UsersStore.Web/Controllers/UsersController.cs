@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using UsersStore.Dal.Abstract;
 using UsersStore.Dal.Entities;
@@ -22,15 +24,11 @@ namespace UsersStore.Web.Controllers
 
         // GET: api/<controller>
         /// <summary>
-        /// The list of all people
+        /// The list of all users
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public IEnumerable<User> Get()
-        {
-            List<User> users=_usersRepository.Get().ToList();
-            return users;
-         } 
+        public IEnumerable<User> Get()=>_usersRepository.Get().ToList();
 
         /// <summary>
         /// This will provide details for specific ID which is begin passed
@@ -48,7 +46,7 @@ namespace UsersStore.Web.Controllers
         }
 
         /// <summary>
-        /// Adding new person into People list
+        /// Adding new user into users list
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
@@ -57,9 +55,26 @@ namespace UsersStore.Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                if(user.Role!="admin" && String.IsNullOrWhiteSpace(user.Role))
+                byte[] salt = new byte[128 / 8];
+                using (var rng = RandomNumberGenerator.Create())
+                {
+                    rng.GetBytes(salt);
+                }
+
+                string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                    password: user.PasswordHash,
+                    salt: salt,
+                    prf: KeyDerivationPrf.HMACSHA1,
+                    iterationCount: 10000,
+                    numBytesRequested: 256 / 8));
+                user.PasswordHash = hashedPassword;
+                user.Salt = salt;
+
+                if (user.Role!="admin" && String.IsNullOrWhiteSpace(user.Role))
                     user.Role = "user";
+
                 _usersRepository.Add(user);
+
                 return Ok();
             }
 
@@ -67,7 +82,7 @@ namespace UsersStore.Web.Controllers
         }
 
         /// <summary>
-        /// Editing person by ID
+        /// Editing user by ID
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
@@ -79,8 +94,23 @@ namespace UsersStore.Web.Controllers
                 User u = _usersRepository.GetById(user.Id);
                 if (u != null)
                 {
+                    byte[] salt = new byte[128 / 8];
+                    using (var rng = RandomNumberGenerator.Create())
+                    {
+                        rng.GetBytes(salt);
+                    }
+
+                    string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                        password: user.PasswordHash,
+                        salt: salt,
+                        prf: KeyDerivationPrf.HMACSHA1,
+                        iterationCount: 10000,
+                        numBytesRequested: 256 / 8));
+
+
                     u.Login = user.Login;
-                    u.Password = user.Password;
+                    u.PasswordHash = hashedPassword;
+                    u.Salt = salt;
                     u.Role = user.Role;
                     u.FirstName = user.FirstName;
                     u.LastName = user.LastName;
@@ -97,7 +127,7 @@ namespace UsersStore.Web.Controllers
         }
 
         /// <summary>
-        /// Removeing person from people list
+        /// Removeing user from users list
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>

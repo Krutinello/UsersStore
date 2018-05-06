@@ -11,9 +11,10 @@ using UsersStore.Dal.EF;
 namespace UsersStore.Dal.Migrations
 {
     [DbContext(typeof(UsersStoreContext))]
-    partial class UsersStoreContextModelSnapshot : ModelSnapshot
+    [Migration("20180505183346_UpdateUserModel")]
+    partial class UpdateUserModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
